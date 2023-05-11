@@ -1,9 +1,39 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using MvcMovie.Models;
+using MvcMovies.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<MvcMovieContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("MvcMovieContext") ?? throw new InvalidOperationException("Connection string 'MvcMovieContext' not found.")));
+
+/*
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDbContext<MvcMovieContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("MvcMovieContext")));
+}
+else
+{
+    builder.Services.AddDbContext<MvcMovieContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("ProductionMvcMovieContext")));
+}
+*/
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+// Needed for Postgres DB
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    SeedData.Initialize(services);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
